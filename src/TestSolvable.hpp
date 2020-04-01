@@ -1,11 +1,16 @@
+#ifndef _TESTSOLVABLE_H_
+#define _TESTSOLVABLE_H_
+
 #include "Solvable.hpp"
 
 class TestSolvable : public Solvable {
  public:
-  TestSolvable(int ndof, const std::vector<std::pair<int, int>>& pairs,
-               const MatrixXXs& CL, const VectorXs& dL)
-      : m_ndof(ndof) {
+  TestSolvable(int ndof, const VectorXs & lengths, const std::vector<std::pair<int, int>>& pairs,
+               const MatrixXXs& CL, const VectorXs& dL) {
     assert(CL.rows() == dL.rows());
+    assert(lengths.rows() == ndof-1);
+    m_l = lengths;
+    m_ndof = ndof;
     m_pairs = pairs;
     m_dL    = dL;
     // convert dense np->eigenmat to sparse CL
@@ -31,14 +36,14 @@ class TestSolvable : public Solvable {
   int getNumDof() { return m_ndof; }
 
   scalar val(const VectorXs& q) {  // f(q)
-    double E = 0;
+    scalar E = 0;
     // sum q_i^2
     // for (int i = 0; i < q.rows(); i++) {
     //     E += q(i) * q(i);
     // }
     // sum (q_i+1 - q_i)^2
     for (int i = 0; i < q.rows() - 1; i++) {
-      E += (q(i + 1) - q(i)) * (q(i + 1) - q(i));
+      E += (q(i + 1) - q(i) - m_l(i)) * (q(i + 1) - q(i) - m_l(i));
     }
     return E;
   }
@@ -51,8 +56,8 @@ class TestSolvable : public Solvable {
     // }
     // gradE_i += -2 (q_i+1 - q_i), gradE_i+1 += 2 (q_i+1 - q_i)
     for (int i = 0; i < q.rows() - 1; i++) {
-      gradE(i) += -2 * (q(i + 1) - q(i));
-      gradE(i + 1) += 2 * (q(i + 1) - q(i));
+      gradE(i) += -2 * (q(i + 1) - q(i) - m_l(i));
+      gradE(i + 1) += 2 * (q(i + 1) - q(i) - m_l(i));
     }
     return gradE;
   }
@@ -83,4 +88,8 @@ class TestSolvable : public Solvable {
   std::vector<std::pair<int, int>> m_pairs;
   SparseXXs m_CL;
   VectorXs m_dL;
+  VectorXs m_l;
+  int m_ndof;
 };
+
+#endif /* end of include guard: _TESTSOLVABLE_H_ */

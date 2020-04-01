@@ -1,4 +1,4 @@
-#include "debug_tools.h"
+#include "debug_tools.hpp"
 
 // convenience type extensions
 // std::ostream& Debug::operator<< (std::ostream& stream, const Magnum::Vector3&
