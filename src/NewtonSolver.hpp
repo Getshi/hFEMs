@@ -9,6 +9,7 @@ struct NewtonSolverSettings {
   scalar reg_start = 5e4;
   scalar reg_end = 5e0;
   int reg_steps = 400;
+  scalar step_limit = 0;
   // stopping criterion
   scalar projgrad_epsilon = 1e-8;//1e-5; // |z| < eps * |z0|
   scalar lagrange_epsilon = 1e-8; // |Cq-d| < eps
@@ -20,7 +21,7 @@ struct NewtonSolverSettings {
 // Solve min_q f(q) subject to q+=q- and CL q = dL
 class NewtonSolver {
  public:
-  NewtonSolver(std::shared_ptr<Solvable> solvable, NewtonSolverSettings = NewtonSolverSettings());
+  NewtonSolver(std::shared_ptr<Solvable> solvable, NewtonSolverSettings settings = NewtonSolverSettings());
 
   void initialize();
   void step();

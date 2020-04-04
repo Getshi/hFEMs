@@ -20,9 +20,11 @@ typedef double scalar;  // Matrix elements
 typedef Eigen::Matrix<scalar, 2, 1> Vector2s;
 typedef Eigen::Matrix<scalar, 3, 1> Vector3s;
 typedef Eigen::Matrix<scalar, 4, 1> Vector4s;
+typedef Eigen::Matrix<scalar, 6, 1> Vector6s;
 typedef Eigen::Matrix<scalar, 2, 2> Matrix2s;
 typedef Eigen::Matrix<scalar, 3, 3> Matrix3s;
 typedef Eigen::Matrix<scalar, 4, 4> Matrix4s;
+typedef Eigen::Matrix<scalar, 3, 2> Matrix3x2s;
 
 // Dynamic size matrices
 typedef Eigen::VectorXi VectorXi;

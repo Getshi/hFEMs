@@ -11,6 +11,7 @@ using namespace pybind11::literals;  // for shorter kwargs
 
 #include "../../src/NewtonSolver.hpp"
 #include "../../src/TestSolvable.hpp"
+#include "../../src/VegaFEMSolvable.hpp"
 
 
 // NOTE .def(name,func,redirect()) to every method that should redirect stdout/stderr
@@ -88,11 +89,34 @@ PYBIND11_MODULE(_solver, m) {
       .def("grad", &TestSolvable::grad, redirect())
       .def("hess", &TestSolvable::hess, redirect());
 
+  py::class_<VegaFEMSolvable, std::shared_ptr<VegaFEMSolvable>>(m, "VegaFEMSolvable")
+      .def(py::init<const std::string &, const Vector6s &>())
+      .def("val", &VegaFEMSolvable::val, redirect())
+      .def("grad", &VegaFEMSolvable::grad, redirect())
+      .def("hess", &VegaFEMSolvable::hess, redirect())
+      .def("getWorldPositions",&VegaFEMSolvable::getWorldPositions, redirect())
+      .def("getGrid",&VegaFEMSolvable::getGrid, redirect());
+
+  py::class_<NewtonSolverSettings>(m, "NewtonSolverSettings")
+      .def(py::init<>(), redirect())
+      .def_readwrite("reg_start", &NewtonSolverSettings::reg_start)
+      .def_readwrite("reg_end", &NewtonSolverSettings::reg_end)
+      .def_readwrite("reg_steps", &NewtonSolverSettings::reg_steps)
+      .def_readwrite("step_limit", &NewtonSolverSettings::step_limit)
+      .def_readwrite("projgrad_epsilon", &NewtonSolverSettings::projgrad_epsilon)
+      .def_readwrite("lagrange_epsilon", &NewtonSolverSettings::lagrange_epsilon);
+
   py::class_<NewtonSolver>(m, "NewtonSolver")
-      .def(py::init([](std::shared_ptr<TestSolvable> solvable) {
+      .def(py::init([](std::shared_ptr<TestSolvable> solvable, NewtonSolverSettings settings) {
         // NOTE: using lambda constructor avoids pybind unexposed inherited virtual parameter class passing...
-        return new NewtonSolver(solvable);
-      }));
+        return new NewtonSolver(solvable, settings);
+      }), "solvable"_a, "settings"_a=NewtonSolverSettings(), redirect())
+      .def(py::init([](std::shared_ptr<VegaFEMSolvable> solvable, NewtonSolverSettings settings) {
+        return new NewtonSolver(solvable, settings);
+      }), "solvable"_a, "settings"_a=NewtonSolverSettings(), redirect())
+      .def("step", &NewtonSolver::step, redirect())
+      .def("isFinished", &NewtonSolver::isFinished, redirect())
+      .def("getSolution", &NewtonSolver::getSolution, redirect());
       // NOTE add .def(name,func,redirect()) to every method that should redirect stdout/stderr 
       // .def("test", [](NewtonSolver &ns, int n) { return ns.test(n); });
   // .def(py::init<std::shared_ptr<Solvable>>());

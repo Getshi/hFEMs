@@ -3,7 +3,7 @@
 
 #include <utility>
 #include <vector>
-#include "EigenDefinitions.h"
+#include "EigenDefinitions.hpp"
 
 class Solvable {
   // f(q): R^N -> R
@@ -20,6 +20,8 @@ class Solvable {
   virtual scalar val(const VectorXs& q)     = 0;  // f(q)
   virtual VectorXs grad(const VectorXs& q)  = 0;  // df/dq (q)
   virtual SparseXXs hess(const VectorXs& q) = 0;  // d2f/dqdq (q)
+
+  virtual scalar computeMaximumStep(const VectorXs& dq) { return 0; }
 };
 
 #endif /* end of include guard: _SOLVABLE_H_ */

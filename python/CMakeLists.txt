@@ -25,6 +25,15 @@ find_package (Eigen3 CONFIG REQUIRED)
 target_link_libraries(lib PUBLIC Eigen3::Eigen)
 
 
+
+
+set(vega_dir ${CMAKE_CURRENT_SOURCE_DIR}/../vega4)
+file(GLOB_RECURSE vega_SRCS "${vega_dir}/*.cpp")
+add_library(vega ${vega_SRCS})
+set_target_properties(vega PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+target_link_libraries(lib PUBLIC vega)
+target_include_directories(lib PUBLIC ${vega_dir})
+
 ##------------ PYBIND --------------##
 
 find_package(pybind11 CONFIG REQUIRED)

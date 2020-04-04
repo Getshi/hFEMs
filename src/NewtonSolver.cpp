@@ -107,7 +107,7 @@ VectorXs NewtonSolver::computeSearchDirection() {
     }
   // add top left regularizer: alpha I
   // logarithmically decaying regularizer
-  scalar alpha_hat = m_settings.reg_start * std::pow(m_settings.reg_end/m_settings.reg_start,std::min(std::max(0,m_iterations),m_settings.reg_steps) / m_settings.reg_steps);
+  scalar alpha_hat = m_settings.reg_start * std::pow(m_settings.reg_end/m_settings.reg_start,std::min(std::max(0.0,m_iterations * 1.0 / m_settings.reg_steps),1.0));
   scalar alpha = std::sqrt(rhs.cwiseAbs2().maxCoeff()) * alpha_hat;
   // alpha=1; alpha = std::max(alpha, 1e-5);
   assert(!(alpha < 0));
@@ -199,6 +199,12 @@ void NewtonSolver::step() {
   if (m_finished)
     return;
 
+  if (m_settings.step_limit > 0) {
+    scalar maxstep = m_solvable->computeMaximumStep(m_Ctilde * dy);
+    if (maxstep > m_settings.step_limit)
+      dy *= m_settings.step_limit / maxstep;
+  }
+
   // simple linesearch for multiples of dy
   backtrackingLinesearch(dy);
 
@@ -259,34 +265,46 @@ SparseXXs generateCtilde(const std::vector<std::pair<int, int>>& pairs,
   // define the reduced order with pairs p as [p0, p1, ..., pn, other
   // non-paired... ]
 
+  // periodicity is allowed as 1->Many mapping
+  //   i.e. one master can have multiple copies
+  //   but we assume that no copy occurs twice (i.e copy cant be a copy of multiple masters, and copy cannot itself be a master)
+  // For simplicity, we assume that pairs are given as {master, copy}
+
   // def i -> ix if i in pair[ix] else -1
   int npairs        = (int)pairs.size();
-  VectorXs i2pairix = VectorXs::Constant(ndof, -1);
+  VectorXs i2reducedi = VectorXs::Constant(ndof, -1);
+  int reducedi = 0;
   for (int ix = 0; ix < npairs; ix++) {
     auto ij = pairs[ix];
     assert(ij.first != ij.second);  // not self-periodic
-    assert(i2pairix[ij.first] == -1 &&
-           i2pairix[ij.second] == -1);  // non-duplicate, i.e. not pre-assigned
-    i2pairix[ij.first]  = ix;
-    i2pairix[ij.second] = ix;
+    assert(i2reducedi[ij.second] == -1);  // non-duplicate, i.e. copies are not pre-assigned
+    if (i2reducedi[ij.first] == -1) { // unassigned master
+      i2reducedi[ij.first]  = reducedi;
+      i2reducedi[ij.second] = reducedi;
+      reducedi++;
+    } else { // master already exists with an assigned reduced index
+      int preassigned_reducedi = i2reducedi[ij.first];
+      i2reducedi[ij.second] = preassigned_reducedi;
+    }
+  }
+  // now append the rest (non-periodic verts)
+  for (int i = 0; i < ndof; i++) {
+    if (i2reducedi[i] != -1) // already assigned periodic verts
+      continue;
+    i2reducedi[i] = reducedi;
+    reducedi++;
   }
 
-  int nreduced = ndof - npairs;
+  int nreduced = reducedi;
   SparseXXs Ctilde(ndof, nreduced);
+  assert(ndof >= nreduced);
+
   std::vector<Triplet> triplets;
   triplets.reserve(ndof);
 
-  int nextfree = npairs;
   for (int i = 0; i < ndof; i++) {
-    // map j to i
-    int j, ix;
-    ix = i2pairix[i];
-    if (ix < 0) {
-      j = nextfree;
-      nextfree++;
-    } else {
-      j = ix;
-    }
+    int j = i2reducedi[i];
+    assert(j != -1);
     triplets.emplace_back(i, j, 1);
   }
 
